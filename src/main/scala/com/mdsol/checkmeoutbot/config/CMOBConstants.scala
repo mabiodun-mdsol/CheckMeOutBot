@@ -1,5 +1,7 @@
 package com.mdsol.checkmeoutbot.config
 
-class CMOBConstants {
-
+object CMOBConstants {
+  object Filename {
+    val checkMeOutBot = "application.conf"
+  }
 }
