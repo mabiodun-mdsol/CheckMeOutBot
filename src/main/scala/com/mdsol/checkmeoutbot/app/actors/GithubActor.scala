@@ -12,12 +12,17 @@ import scala.util.{Failure, Success}
 
 class GithubActor extends Actor with GithubServices {
 
+
   override def receive: Receive = {
 
     case AuthCode(code) =>
+      println("processing oauthcode")
       processAuthCode(code)
-    case OAuthToken(access_token, token_type, scope) =>
-      processOAuthToken(access_token)
+//    case OAuthToken(access_token, token_type, scope) =>
+//      createWebhook(access_token)
+    case "createWebhook" =>
+      createWebhook("access_token" +
+        "")
 
   }
 
@@ -29,13 +34,25 @@ class GithubActor extends Actor with GithubServices {
         case Right(oAuthToken) => {
           println(oAuthToken)
           self ! oAuthToken.result
-
         }
         case Left(error) => println(error.printStackTrace())
       }
       case Failure(e) => e.printStackTrace()
     }
   }
+
+
+  def createWebhook(access_token: String): Unit = {
+    createWebhookService(Option(access_token)).onComplete {
+      case Success(value) => value match {
+        case Right(userInfo) => println(userInfo)
+        case Left(error) => error.printStackTrace()
+      }
+      case Failure(exception) => exception.printStackTrace()
+    }
+  }
+
+
 
 
   def processOAuthToken(accessToken: String): Unit = {
