@@ -1,52 +1,37 @@
 package com.mdsol.checkmeoutbot.app
 
-import akka.actor.{ActorSystem, Props}
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
-import akka.stream.ActorMaterializer
+import akka.http.scaladsl.server.Route
+import com.mdsol.checkmeoutbot.app.actors.CMOBSupervisorActor
+import com.mdsol.checkmeoutbot.app.implicits.GlobalImplicits
+import com.mdsol.checkmeoutbot.app.routes._
 import com.mdsol.checkmeoutbot.config.CMOBConfig
-import com.mdsol.checkmeoutbot.app.models.GithubModels.AuthCode
-import com.mdsol.checkmeoutbot.app.actors.GithubActor
+import com.mdsol.checkmeoutbot.utils.ActorRefConstantUtils.CMOB_SUPERVISOR_ACTOR
 
-import scala.concurrent.Await
-
-abstract class CMOBServer {
+import scala.concurrent.{Await, Future}
 
 
-  val httpConfig = CMOBConfig.Http
-  val githubConfig = CMOBConfig.gitApp
-
-  implicit val actorSystem = ActorSystem()
-  implicit val materializer: ActorMaterializer = ActorMaterializer()
-  implicit val executionContext = actorSystem.dispatcher
-  implicit val githubActor = actorSystem.actorOf(Props[GithubActor], name = "GithubActor")
+abstract class CMOBServer extends GlobalImplicits {
 
 
-  val route =
-    path("") {
+  val httpConfig: CMOBConfig.Http.type = CMOBConfig.Http
+
+  val cmobSupervisorActor = actorSystem.actorOf(CMOBSupervisorActor.props(), CMOB_SUPERVISOR_ACTOR)
+  val routes: Route = new GithubRoutes(cmobSupervisorActor).getRoutes ~ new SlackRoutes(cmobSupervisorActor).getRoutes ~ healthRoute
+//  val  = scalaVersion.value
+
+  def healthRoute: Route =
+    path("app_status") {
       get {
-        complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, "<h1>Say hello to akka-http</h1>"))
+        complete("server is running \n version 7")
       }
-    } ~
-      path("home") {
-        get {
-          complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, "Payload"))
-        }
-      } ~
-      path("register") {
-        println("Registering...")
-        get {
-          parameters('code.as[String]) { (code) =>
-            complete {
-              githubActor ! AuthCode(code)
-              "complete"
-            }
-          }
-        }
-      }
+    }
 
-  val bindingFuture = Http().bindAndHandle(route, httpConfig.host.get, httpConfig.port.get)
+  val bindingFuture: Future[Http.ServerBinding] = Http().bindAndHandle(routes, httpConfig.HOST.get, httpConfig.PORT.get)
+
+
+  
 
 
   sys.addShutdownHook({
