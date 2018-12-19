@@ -11,9 +11,7 @@ import com.mdsol.checkmeoutbot.utils.RouteConstantUtils._
 import io.circe.Printer
 import io.circe.generic.auto._
 import io.circe.parser._
-import io.circe.Printer._
 import io.circe.syntax._
-import io.circe.generic.auto._
 
 
 class GithubRoutes(cmobSupervisorActor: ActorRef) extends GlobalImplicits {

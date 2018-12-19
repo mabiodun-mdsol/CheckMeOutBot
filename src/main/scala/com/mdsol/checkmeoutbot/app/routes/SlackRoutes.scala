@@ -40,7 +40,7 @@ class SlackRoutes(cmobSupervisorActor: ActorRef) extends Directives with SlackMo
       post {
         entity(as[EventVerification]) {
           x =>
-            println(x.challenge)
+            log.info("Challenge: " + x.challenge)
             complete(x.challenge)
         }
       }
