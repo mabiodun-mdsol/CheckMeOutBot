@@ -15,6 +15,8 @@ object CMOBConfig {
     private val GIT_APP_CONFIG = root.getConfig("gitApp")
     val CLIENT_ID: Option[String] = Some(GIT_APP_CONFIG.getString("client_id"))
     val CLIENT_SECRET: Option[String] = Some(GIT_APP_CONFIG.getString("client_secret"))
+    val USERNAME: Option[String] = Some(GIT_APP_CONFIG.getString("username"))
+    val PASSWORD: Option[String] = Some(GIT_APP_CONFIG.getString("password"))
     var GITHUB_ACCESS_TOKEN: Option[String] = None
   }
 
