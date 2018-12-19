@@ -6,15 +6,25 @@ object CMOBConfig {
   val root: Config = ConfigFactory.load(CMOBConstants.Filename.checkMeOutBot)
 
   object Http {
-    private val httpConfig = root.getConfig("http")
-    val host: Option[String] = Some(httpConfig.getString("host"))
-    val port: Option[Int] = Some(httpConfig.getInt("port"))
+    private val HTTP_CONFIG = root.getConfig("http")
+    val HOST: Option[String] = Some(HTTP_CONFIG.getString("host"))
+    val PORT: Option[Int] = Some(HTTP_CONFIG.getInt("port"))
   }
 
   object gitApp {
-    private val gitAppConfig = root.getConfig("gitApp")
-    val clientId: Option[String] = Some(gitAppConfig.getString("client_id"))
-    val clientSecret: Option[String] = Some(gitAppConfig.getString("client_secret"))
+    private val GIT_APP_CONFIG = root.getConfig("gitApp")
+    val CLIENT_ID: Option[String] = Some(GIT_APP_CONFIG.getString("client_id"))
+    val CLIENT_SECRET: Option[String] = Some(GIT_APP_CONFIG.getString("client_secret"))
+    val USERNAME: Option[String] = Some(GIT_APP_CONFIG.getString("username"))
+    val PASSWORD: Option[String] = Some(GIT_APP_CONFIG.getString("password"))
+    var GITHUB_ACCESS_TOKEN: Option[String] = None
+  }
+
+  object slackApp {
+    private val GIT_APP_CONFIG = root.getConfig("slackApp")
+    val CLIENT_ID: Option[String] = Some(GIT_APP_CONFIG.getString("client_id"))
+    val CLIENT_SECRET: Option[String] = Some(GIT_APP_CONFIG.getString("client_secret"))
+    var SLACK_ACCESS_TOKEN: Option[String] = None
   }
 
 }
