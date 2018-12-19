@@ -25,11 +25,10 @@ libraryDependencies ++= {
 
     "ch.qos.logback" % "logback-classic" % "1.2.3",
     "de.heikoseeberger" %% "akka-http-play-json" % "1.17.0",
-
-    "com.47deg" %% "github4s" % "0.19.0",
+    "com.47deg" %% "github4s" % "0.19.1-bolaji-SNAPSHOT-2",
      "org.typelevel" %% "cats-core" % "0.9.0",
 
-  "org.scalatest" %% "scalatest" % "3.2.0-SNAP10" % Test
+    "org.scalatest" %% "scalatest" % "3.2.0-SNAP10" % Test
 
 
   )
