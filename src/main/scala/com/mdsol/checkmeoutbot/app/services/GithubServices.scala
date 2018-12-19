@@ -23,9 +23,10 @@ trait GithubServices {
   val githubConfig = CMOBConfig.gitApp
 
   def getAccessToken() = {
+
     val res = Github(None).auth.newAuth(
-      "mabiodun-mdsol",
-      "Rosemary!2",
+      githubConfig.USERNAME.get,
+      githubConfig.PASSWORD.get,
       List("admin:repo_hook"),
       "",
       githubConfig.CLIENT_ID.get,
