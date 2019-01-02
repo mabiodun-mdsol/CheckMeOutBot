@@ -78,9 +78,9 @@ class SlackActor extends Actor with SlackServices with ActorLogging {
   def handleCommand(command: String, commandResponse: CommandResponse): Unit = {
     command match {
       case "subscribe" =>
-        sender() ! SubscribeCommand(commandResponse.channel_id, commandResponse.text, commandResponse.user_id, commandResponse.response_url)
+        sender() ! SubscribeCommand(commandResponse.channel_id, commandResponse.text, commandResponse.user_name, commandResponse.response_url)
       case "unsubscribe" =>
-        sender() ! UnsubscribeCommand(commandResponse.channel_id, commandResponse.text, commandResponse.user_id, commandResponse.response_url)
+        sender() ! UnsubscribeCommand(commandResponse.channel_id, commandResponse.text, commandResponse.user_name, commandResponse.response_url)
       case _ =>
         sender() ! UnrecognisedCommand(commandResponse.channel_id, commandResponse.text, commandResponse.response_url)
     }
@@ -94,8 +94,11 @@ class SlackActor extends Actor with SlackServices with ActorLogging {
 
   def handleSubscribe(channelId: String, text: String, user: String, responseUrl: String): Unit = {
     val arguments = text.split(" ").map(x => x.trim)
+    val owner = arguments(1)
+    val repo = arguments(2)
+
     log.info(s"recieved $arguments in command")
-    sender() ! Subscribe(arguments(1), arguments(2), channelId, user, responseUrl)
+    sender() ! Subscribe(owner,repo , channelId, user, responseUrl)
     log.info("Sending Subscribe message to cmobSupervisorActor")
   }
 
@@ -109,9 +112,8 @@ class SlackActor extends Actor with SlackServices with ActorLogging {
   }
 
   def handleRespondToCommand(messageWriter: BaseMessageWriter, responseUrl: String) = {
-    respondToSlashCommand(messageWriter.message, responseUrl)
+    respondToSlashCommand(messageWriter, responseUrl)
   }
-
 
 }
 

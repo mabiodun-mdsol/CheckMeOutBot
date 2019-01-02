@@ -1,16 +1,19 @@
 package com.mdsol.checkmeoutbot.app.actors
 
-import akka.actor.{Actor, ActorLogging, Props}
-import com.mdsol.checkmeoutbot.app.actors.GithubActor.{GithubAuthCode, ProcessWebhookEvent, Subscribe, Unsubscribe}
-import com.mdsol.checkmeoutbot.app.models.GithubModels.{GetGithubAccess, PullRequestEvent}
-import com.mdsol.checkmeoutbot.app.models.{RespondToCommand, SendUpdate, SubscribeCommand}
+import java.util.concurrent.TimeUnit
+
+import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
+import com.mdsol.checkmeoutbot.app.actors.GithubActor._
+import com.mdsol.checkmeoutbot.app.models.GithubModels.PullRequestEvent
+import com.mdsol.checkmeoutbot.app.models.{RespondToCommand, SendUpdate}
 import com.mdsol.checkmeoutbot.app.services._
-import com.mdsol.checkmeoutbot.config.CMOBConfig.gitApp.GITHUB_ACCESS_TOKEN
 import com.mdsol.checkmeoutbot.repository.GithubRepos
-import com.mdsol.checkmeoutbot.utils.{LabelsCheckMessage, SubscribeMessage, UnsubscribeMessage}
+import com.mdsol.checkmeoutbot.utils.PullRequestsEventsConstantsUtils.{ACTION_CLOSED, ACTION_OPENED}
+import com.mdsol.checkmeoutbot.utils._
+import github4s.free.domain.PullRequest
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.{Failure, Success}
+import scala.concurrent.duration.Duration
 
 
 object GithubActor {
@@ -24,10 +27,29 @@ object GithubActor {
 
   final case class GithubAuthCode(code: String)
 
+  final case class CheckForMatchingLabels(event: PullRequestEvent)
+
+  final case class CheckForDeletedBranch(event: PullRequestEvent)
+
+  final case class CheckForMultiplePullRequests(event: PullRequestEvent)
+
+  final case class CheckForPullRequestsOpenedTooLong()
+
+  final case class PullRequestsOpenedForTooLongInChannel(channels: List[String], pullRequests: List[PullRequest])
+
 }
 
 
-class GithubActor extends Actor with GithubServices with ActorLogging {
+class GithubActor extends
+  Actor with
+  AuthorisationService with
+  SubscribeService with
+  UnsubscribeService with
+  WebhookService with
+  LabelsService with
+  BranchService with
+  PullRequestsService with
+  ActorLogging {
 
 
   override def preStart(): Unit = {
@@ -37,6 +59,7 @@ class GithubActor extends Actor with GithubServices with ActorLogging {
 
 
   override def receive: Receive = {
+
     case GithubAuthCode(code) =>
       log.info("Recieved GithubAuthCode ")
       handleAuthCode(code)
@@ -49,85 +72,110 @@ class GithubActor extends Actor with GithubServices with ActorLogging {
     case ProcessWebhookEvent(pullRequestEvent) =>
       log.info("recieved ProcessWebhookEvent ")
       handleWebhookEvent(pullRequestEvent)
+    case CheckForMatchingLabels(event) =>
+      log.info("recieved CheckForMatchingLabels")
+      handleCheckForMatchingLabels(event)
+    case CheckForDeletedBranch(event) => {
+      log.info("recieved CheckForDeletedBranch")
+      handleCheckForDeletedBranch(event)
+    }
+    case CheckForMultiplePullRequests(event) => {
+      log.info("received CheckForMultiplePullRequests")
+      handleCheckForMultiplePullRequests(event)
+    }
+    case CheckForPullRequestsOpenedTooLong() => {
+      log.info("received CheckForPullRequestsOpenedTooLong")
+      handleCheckForPullRequestsOpenedTooLong()
+    }
   }
 
 
   def handleAuthorisation(): Unit = {
-    getAccessToken().onComplete {
-      case Success(x) => x match {
-        case Right(oAuthToken) => {
-          GITHUB_ACCESS_TOKEN = Some(oAuthToken.result.token)
-          log.info("ACCESS TOKEN: " + GITHUB_ACCESS_TOKEN.get)
-        }
-        case Left(error) => log.error("Couldn't get github access token", error.printStackTrace())
-      }
-      case Failure(e) => e.printStackTrace()
-    }
+    authorisationHandler()
+
   }
 
 
   def handleAuthCode(code: String): Unit = {
-
-    getAuthCodeService(code).onComplete {
-      case Success(x) => x match {
-        case Right(oAuthToken) => {
-          GITHUB_ACCESS_TOKEN = Some(oAuthToken.result.access_token)
-          log.info("ACCESS TOKEN: " + oAuthToken.result.access_token)
-        }
-        case Left(error) => println(error.printStackTrace())
-      }
-      case Failure(e) => e.printStackTrace()
-    }
+    authCodeHandler(code)
   }
 
-
   def handleSubscribe(owner: String, repo: String, channelId: String, user: String, responseUrl: String): Unit = {
-
-    if (GITHUB_ACCESS_TOKEN.isDefined) {
-      log.info("access token is defined as: " + GITHUB_ACCESS_TOKEN.get)
-      if (isWebhookCreated(GITHUB_ACCESS_TOKEN, owner, repo)) {
-        log.info("webhook is already created")
-        subscribeChannelToRepoService(channelId, repo)
-      }
-      else {
-        createWebhookService(GITHUB_ACCESS_TOKEN, owner, repo)
-        log.info("creating webhook")
-        subscribeChannelToRepoService(channelId, repo)
-      }
-      sender() ! RespondToCommand(SubscribeMessage.getSubscribeMessage(repo), responseUrl)
-      log.info("Sent RespondToCommandMessage to cmobSupervisorActor ")
-    }
-    else {
-      sender() ! GetGithubAccess()
-      log.info("Sent GetGithubAccess to cmobSupervisorActor ")
-      sender() ! SubscribeCommand(channelId, repo, user, responseUrl)
-      log.info("Sent SubscribeCommand to cmobSupervisorActor ")
-
-    }
+    val response: RespondToCommand = subscribeHandler(owner, repo, channelId, user, responseUrl)
+    sender() ! response
+    log.info("SentRespondToCommand to cmobSupervisorActor")
   }
 
 
   def handleUnsubscribe(owner: String, repo: String, channelId: String, user: String, responseUrl: String): Unit = {
-    unsubscribeChannelFromRepoService(channelId, repo)
-    log.info("Unsubscribed From Repo")
-    sender() ! RespondToCommand(UnsubscribeMessage.getUnsubscribeMessage(repo), responseUrl)
+    val response = unsubscribeHandler(owner, repo, channelId, user, responseUrl)
+    sender() ! response
     log.info("Sent RespondToCommand to cmobSupervisorActor ")
-
   }
 
 
   def handleWebhookEvent(event: PullRequestEvent): Unit = {
-    val labels = handlePullRequestEventService(event)
-    log.info(s"Retrieved $labels in labels from PullRequestEvent")
-    if (labels.isDefined) {
-      val repo = event.repository.name
-      val channels = GithubRepos.getSubscribedChannels(repo)
 
-      log.info(s"Retrieved channels: $channels that have subscribed to $repo")
-      sender() ! SendUpdate(LabelsCheckMessage.getLabelsFlag(event, labels), channels.toList)
-      log.info("Sent SendUpdate to cmobSupervisorActor")
+    val pullRequestAction = event.action
+
+    if (GithubRepos.isKeyExisting(event.repository.name)) {
+
+      pullRequestAction match {
+
+        case ACTION_CLOSED => {
+
+          if (event.pull_request.merged) {
+            sender() ! CheckForMatchingLabels(event)
+
+            val actorPath = sender().path
+            ActorSystem().scheduler.scheduleOnce(Duration(5, TimeUnit.SECONDS)) {
+              context.actorSelection(actorPath) ! CheckForDeletedBranch(event)
+            }
+          }
+        }
+
+        case ACTION_OPENED => {
+          sender() ! CheckForMultiplePullRequests(event: PullRequestEvent)
+        }
+      }
+    }
+  }
 
 
+  def handleCheckForMatchingLabels(event: PullRequestEvent): Unit = {
+
+    val response = labelsHandler(event: PullRequestEvent)
+
+    if (response.isDefined)
+      sender() ! response
+    log.info("Sent SendUpdate to cmobSupervisorActor")
+  }
+
+
+  def handleCheckForDeletedBranch(event: PullRequestEvent): Unit = {
+    val response = branchHandler(event)
+    if (response.isDefined)
+      sender() ! response
+  }
+
+
+  def handleCheckForMultiplePullRequests(event: PullRequestEvent): Unit = {
+
+    val response = multiplePullRequestHandler(event)
+    if (response.isDefined)
+      sender() ! response
+
+  }
+
+  def handleCheckForPullRequestsOpenedTooLong(): Unit = {
+
+    val response = pullRequestOpenedTooLongHandler
+    if (response.isDefined) {
+      for (pullRequestsForReporting <- response.get) {
+        sender() !
+          SendUpdate(PullRequestsOpenedForTooLongMessage.getPullRequestsOpenedForTooLongMessage(pullRequestsForReporting.pullRequests), pullRequestsForReporting.channels)
+      }
     }
   }
 }
+

@@ -1,8 +1,7 @@
 package com.mdsol.checkmeoutbot.app.actors
 
 import akka.actor.{Actor, ActorLogging, Props}
-import com.mdsol.checkmeoutbot.app.actors.GithubActor.{GithubAuthCode, ProcessWebhookEvent, Subscribe, Unsubscribe}
-import com.mdsol.checkmeoutbot.app.models.GithubModels.PullRequestEvent
+import com.mdsol.checkmeoutbot.app.actors.GithubActor._
 import com.mdsol.checkmeoutbot.app.models._
 import com.mdsol.checkmeoutbot.utils.ActorRefConstantUtils._
 
@@ -15,6 +14,22 @@ class CMOBSupervisorActor extends Actor with ActorLogging {
 
   val slackActor = context.actorOf(SlackActor.props, SLACK_ACTOR)
   val githubActor = context.actorOf(GithubActor.props(), GITHUB_ACTOR)
+
+
+
+//  override def preStart(): Unit = {
+//
+//    log.info("Setting up daily reminder")
+//
+//    val scheduler = QuartzSchedulerExtension(ActorSystem())
+//
+//      scheduler.schedule(
+//      "Every30Seconds",
+//      githubActor,
+//      CheckForPullRequestsOpenedTooLong(),
+//      Option(Calendar.getInstance().getTime)
+//    )
+//  }
 
 
   override def receive: Receive = {
@@ -47,7 +62,6 @@ class CMOBSupervisorActor extends Actor with ActorLogging {
       log.info("recieved SendUpdate")
       slackActor ! SendUpdate(messageWriter, channels)
 
-
     case GithubAuthCode(code) =>
       log.info("recieved GithubAuthoCode")
       githubActor ! GithubAuthCode(code)
@@ -60,7 +74,20 @@ class CMOBSupervisorActor extends Actor with ActorLogging {
     case ProcessWebhookEvent(pullRequestEvent) =>
       log.info("recieved ProcessWebhookEvent")
       githubActor ! ProcessWebhookEvent(pullRequestEvent)
+    case CheckForMatchingLabels(event) =>
+      log.info("recieved CheckForMatchingLabels")
+      githubActor ! CheckForMatchingLabels(event)
+    case CheckForMultiplePullRequests(event) =>
+      githubActor ! CheckForMultiplePullRequests(event)
+    case CheckForDeletedBranch(event) =>
+      log.info("recieved CheckForDeletedBranch")
+      githubActor ! CheckForDeletedBranch(event)
   }
+
+
+
+
+
 
 }
 

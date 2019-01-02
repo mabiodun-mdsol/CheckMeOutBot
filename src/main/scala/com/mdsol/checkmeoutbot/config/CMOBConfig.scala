@@ -27,4 +27,9 @@ object CMOBConfig {
     var SLACK_ACCESS_TOKEN: Option[String] = None
   }
 
+  object scheduler {
+    private val QUARTZ = root.getConfig("Every30Seconds")
+
+  }
+
 }

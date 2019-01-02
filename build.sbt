@@ -29,11 +29,13 @@ libraryDependencies ++= {
     "com.typesafe.play" %% "play-ws-standalone-json" % "1.1.8",
     "ch.qos.logback" % "logback-classic" % "1.2.3",
     "de.heikoseeberger" %% "akka-http-play-json" % "1.17.0",
-    "com.47deg" %% "github4s" % "0.19.1-bolaji-SNAPSHOT-3",
+    "com.47deg" %% "github4s" % "0.19.1-bolaji-SNAPSHOT-4",
     "org.typelevel" %% "cats-core" % "0.9.0",
     "com.github.slack-scala-client" %% "slack-scala-client" % "0.2.5",
+    "com.enragedginger" %% "akka-quartz-scheduler" % "1.7.1-akka-2.5.x",
 
-//    "com.typesafe.akka" %% "akka-stream-testkit" % "2.5.18" % Test,
+
+  //    "com.typesafe.akka" %% "akka-stream-testkit" % "2.5.18" % Test,
     "com.typesafe.akka" %% "akka-http-testkit" % "10.1.5" % Test,
     "com.typesafe.akka" %% "akka-testkit" % "2.5.18" % Test,
 

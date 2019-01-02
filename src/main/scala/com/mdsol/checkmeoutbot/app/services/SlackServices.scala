@@ -27,13 +27,13 @@ trait SlackServices extends GlobalImplicits {
     SlackApiClient(accessToken.get).postChatMessage(channelId, text)
   }
 
-  def respondToSlashCommand(text: String, responseUrl: String) = {
-    SlackApiClient.respondToSlashCommand(text, responseUrl)
+  def respondToSlashCommand(messageWriter: BaseMessageWriter, responseUrl: String) = {
+    SlackApiClient.respondToSlashCommand(null, responseUrl, "ephemeral", messageWriter.createAttachment)
   }
 
   def sendUserEventUpdateService(accessToken: Option[String], channels: List[String], messageWriter: BaseMessageWriter) = {
     for (channel <- channels) {
-      SlackApiClient(accessToken.get).postChatMessage(channel, messageWriter.message)
+      SlackApiClient(accessToken.get).postChatMessage(channel, messageWriter.text.get)
     }
   }
 }

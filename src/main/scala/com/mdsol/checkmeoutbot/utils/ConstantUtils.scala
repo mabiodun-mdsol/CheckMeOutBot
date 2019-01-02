@@ -22,13 +22,19 @@ object ActorRefConstantUtils {
 object GithubAuthorisationConstantUtils {
   val clientId = CMOBConfig.gitApp.CLIENT_ID.get
   val GITHUB_AUTH_URL = s"https://github.com/login/oauth/authorize?scope=write:repo_hook&client_id=$clientId"
-  val WEBHOOK_ENDPOINT = s"https://checkmeout-sandbox.imedidata.net/github/cmob/webhook"
-//  val WEBHOOK_ENDPOINT = s"https://dimitto.serveo.net/github/cmob/webhook"
+//  val WEBHOOK_ENDPOINT = s"https://checkmeout-sandbox.imedidata.net/github/cmob/webhook"
+  val WEBHOOK_ENDPOINT = s"https://dimitto.serveo.net/github/cmob/webhook"
 }
 
-object PullRequestsEventsConstants {
+object PullRequestsEventsConstantsUtils {
   val ACTION_MERGED = "merged"
   val ACTION_PUSHED = "pushed"
   val ACTION_CLOSED = "closed"
+  val ACTION_OPENED = "opened"
+  val ACTION_REOPENED = "repopened"
   val LABELS = List("do not merge")
+}
+
+object RepoConstantsUtils {
+  val FILE_NAME = "CheckMeOutBotSubscriptions.txt"
 }

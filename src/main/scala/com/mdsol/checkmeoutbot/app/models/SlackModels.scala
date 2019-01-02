@@ -48,3 +48,5 @@ case class UnrecognisedCommand(channelId: String, githubRepoOrOrg: String, respo
 case class RespondToCommand(messageWriter: BaseMessageWriter, responseUrl: String)
 
 case class SendUpdate(messageWriter: BaseMessageWriter, channels: List[String])
+
+case class DailyReportCommand(isOn: Boolean, channelId: String, numberOfDays: Int)
